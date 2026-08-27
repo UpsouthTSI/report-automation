@@ -1,0 +1,6 @@
+./data
+./memory/ethnicity_mapping.json
+./memory/gender_mapping.json
+./processed_data
+./temp
+secrets.json
