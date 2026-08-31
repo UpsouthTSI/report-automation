@@ -1,3 +1,6 @@
 pandas
 ollama
 pyshp
+shapely
+pyproj
+scipy

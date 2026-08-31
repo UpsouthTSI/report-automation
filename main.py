@@ -15,6 +15,7 @@ def main():
     processed_data_directory = os.path.join(cwd, 'processed_data')
     memory_directory = os.path.join(cwd, 'memory')
     geodata_file = os.path.join(data_directory, 'open_nz_postcode_boundaries_shp.zip')
+    regional_geodata_file = os.path.join(data_directory, 'statsnz-regional-council-2025-clipped-SHP.zip')
 
     # Load data from CSV files
     users = get_from_csv(os.path.join(data_directory, 'users.csv'))
@@ -26,7 +27,7 @@ def main():
     processed_challenges, reward_table = challenge_data(challenges)
     processed_sponsors = sponsor_data(sponsors)
 
-    postcode_table = postcode_coordinates(geodata_file, memory_dir=memory_directory)
+    postcode_table = postcode_coordinates(geodata_file, memory_dir=memory_directory, regional_geodata_file=regional_geodata_file)
 
     print(brief_ai_summary(processed_users, processed_challenges, processed_sponsors, ethnicity_table))
     # Save the processed data to CSV files
