@@ -4,7 +4,7 @@ import re
 import pandas as pd
 from sub_processes.ai_call import user_call_ai
 
-def user_data(data, memory_dir=None):
+def user_data(data, memory_dir=None, mapping_reviewer=None):
     #set the UserPostcode column to int type and handling Nans
     data = process_postcode(data)
     #Check the data for any issues
@@ -15,11 +15,15 @@ def user_data(data, memory_dir=None):
     # Process the 'DOB' column in the data
     data = process_DOB(data)
     # Process the 'Ethnicity' column in the data
-    ethnicity_table, ethnicity_join_table = get_ethnicity(data, memory_dir=memory_dir)
+    ethnicity_table, ethnicity_join_table = get_ethnicity(
+        data,
+        memory_dir=memory_dir,
+        mapping_reviewer=mapping_reviewer,
+    )
     # Process the 'Submissions' column in the data
     submissions_join_table = process_submissions(data)
     # Process the 'Gender' column in the data
-    data = process_gender(data, memory_dir=memory_dir)
+    data = process_gender(data, memory_dir=memory_dir, mapping_reviewer=mapping_reviewer)
     return data, ethnicity_table, ethnicity_join_table, submissions_join_table
 
 def process_DOB(data):
@@ -41,7 +45,7 @@ def process_DOB(data):
     return data
 
 
-def get_ethnicity(data, memory_dir=None):
+def get_ethnicity(data, memory_dir=None, mapping_reviewer=None):
     """
     Process the 'Ethnicity' column in the given DataFrame.
 
@@ -87,7 +91,12 @@ def get_ethnicity(data, memory_dir=None):
         # Use AI to map the new values
         values = user_call_ai(prompt, categories, value_to_create_mappings)
 
-        # Update old mappings with new values
+        if mapping_reviewer:
+            values = mapping_reviewer('Ethnicity', values, categories)
+            if values is None:
+                raise RuntimeError('Processing cancelled while reviewing new ethnicity mappings.')
+
+        # Update old mappings with reviewed new values
         old_mappings.update(values)
 
     # Save updated mappings
@@ -145,7 +154,7 @@ def process_specific_ethnicity(ethnicity):
 
 
 
-def process_gender(data, memory_dir=None):
+def process_gender(data, memory_dir=None, mapping_reviewer=None):
     """
     Process the 'Gender' column in the given DataFrame.
 
@@ -198,7 +207,12 @@ def process_gender(data, memory_dir=None):
         # Use AI to map the new values
         values = user_call_ai(prompt, categories, value_to_create_mappings)
 
-        # Update old mappings with new values
+        if mapping_reviewer:
+            values = mapping_reviewer('Gender', values, categories)
+            if values is None:
+                raise RuntimeError('Processing cancelled while reviewing new gender mappings.')
+
+        # Update old mappings with reviewed new values
         old_mappings.update(values)
 
     # Save updated mappings

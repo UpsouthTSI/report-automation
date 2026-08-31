@@ -1,4 +1,5 @@
 pandas
+PyQt6
 ollama
 pyshp
 shapely

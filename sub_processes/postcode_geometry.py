@@ -28,6 +28,11 @@ def postcode_coordinates(geodata_file, memory_dir=None, regional_geodata_file=No
             for postcode, values in postcode_memory.items():
                 df_postcode.loc[len(df_postcode)] = [postcode, values[0], values[1], values[2], None]
             return df_postcode
+    if not geodata_file:
+        raise FileNotFoundError(
+            'Postcode boundaries are required when no cached postcode coordinates are available. '
+            'Select postcode_boundaries.zip or retain postcode_coordinates.json in the memory folder.'
+        )
     postcode_memory = {}
     sf = shapefile.Reader(geodata_file)
     for i in range(len(sf.shapes())):

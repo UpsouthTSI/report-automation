@@ -10,7 +10,10 @@ This project is designed to clean and proces the relevant data to later be using
 
 ## Running
 1) Ensure you have entered the virtual environment by running `source .venv/bin/activate` for linux or `.\.venv\Scripts\Activate.ps1` for windows (See https://docs.python.org/3/library/venv.html for more information)
-2) Run the program by running `python main.py`
+2) Run the graphical application with `python ui.py`.
+3) Choose the three required CSV files and the folder for the generated CSV files. Postcode and regional council ZIP archives are optional when `memory/postcode_coordinates.json` is already available.
+
+To retain the original default-path workflow, run `python main.py`.
 
 Note that the program does require an AI to run, see AI requirements.
 
