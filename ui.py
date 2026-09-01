@@ -175,6 +175,20 @@ class BuzzlyWindow(QMainWindow):
         output_form.addRow('Processed CSV folder', self.output)
         layout.addWidget(output_section)
 
+        ai_section = self.create_section('AI settings')
+        ai_form = QFormLayout(ai_section)
+        self.primary_ai_model = QComboBox()
+        self.primary_ai_model.setEditable(True)
+        self.primary_ai_model.addItems(['llama3.1:8b', 'deepseek-r1:7b'])
+        self.primary_ai_model.setToolTip('Generates mappings and the data summary. Enter any model installed in Ollama.')
+        self.secondary_ai_model = QComboBox()
+        self.secondary_ai_model.setEditable(True)
+        self.secondary_ai_model.addItems(['deepseek-r1:7b', 'llama3.1:8b'])
+        self.secondary_ai_model.setToolTip('Verifies generated mappings and corrects invalid JSON responses.')
+        ai_form.addRow('Primary Ollama model', self.primary_ai_model)
+        ai_form.addRow('Secondary Ollama model', self.secondary_ai_model)
+        layout.addWidget(ai_section)
+
         self.status = QLabel('Ready to process data.')
         self.status.setObjectName('status')
         self.process_button = QPushButton('Process data')
@@ -214,6 +228,9 @@ class BuzzlyWindow(QMainWindow):
         if invalid_paths:
             QMessageBox.warning(self, 'Invalid path', f'These selected files do not exist:\n' + '\n'.join(invalid_paths))
             return
+        if not self.primary_ai_model.currentText().strip() or not self.secondary_ai_model.currentText().strip():
+            QMessageBox.warning(self, 'Missing AI model', 'Enter both a primary and secondary Ollama model.')
+            return
 
         self.process_button.setEnabled(False)
         self.status.setText('Processing data. This may take a few minutes while mappings are generated.')
@@ -224,6 +241,8 @@ class BuzzlyWindow(QMainWindow):
             'output_directory': self.output.value(),
             'geodata_file': self.postcodes.value() or None,
             'regional_geodata_file': self.regions.value() or None,
+            'primary_ai_model': self.primary_ai_model.currentText().strip(),
+            'secondary_ai_model': self.secondary_ai_model.currentText().strip(),
         })
         self.worker.completed.connect(self.processing_completed)
         self.worker.failed.connect(self.processing_failed)

@@ -4,7 +4,7 @@ import re
 import pandas as pd
 from sub_processes.ai_call import user_call_ai
 
-def user_data(data, memory_dir=None, mapping_reviewer=None):
+def user_data(data, memory_dir=None, mapping_reviewer=None, primary_ai_model=None, secondary_ai_model=None):
     #set the UserPostcode column to int type and handling Nans
     data = process_postcode(data)
     #Check the data for any issues
@@ -19,11 +19,19 @@ def user_data(data, memory_dir=None, mapping_reviewer=None):
         data,
         memory_dir=memory_dir,
         mapping_reviewer=mapping_reviewer,
+        primary_ai_model=primary_ai_model,
+        secondary_ai_model=secondary_ai_model,
     )
     # Process the 'Submissions' column in the data
     submissions_join_table = process_submissions(data)
     # Process the 'Gender' column in the data
-    data = process_gender(data, memory_dir=memory_dir, mapping_reviewer=mapping_reviewer)
+    data = process_gender(
+        data,
+        memory_dir=memory_dir,
+        mapping_reviewer=mapping_reviewer,
+        primary_ai_model=primary_ai_model,
+        secondary_ai_model=secondary_ai_model,
+    )
     return data, ethnicity_table, ethnicity_join_table, submissions_join_table
 
 def process_DOB(data):
@@ -45,7 +53,7 @@ def process_DOB(data):
     return data
 
 
-def get_ethnicity(data, memory_dir=None, mapping_reviewer=None):
+def get_ethnicity(data, memory_dir=None, mapping_reviewer=None, primary_ai_model=None, secondary_ai_model=None):
     """
     Process the 'Ethnicity' column in the given DataFrame.
 
@@ -89,7 +97,13 @@ def get_ethnicity(data, memory_dir=None, mapping_reviewer=None):
             Please check your JSON is valid before replying.
         """
         # Use AI to map the new values
-        values = user_call_ai(prompt, categories, value_to_create_mappings)
+        values = user_call_ai(
+            prompt,
+            categories,
+            value_to_create_mappings,
+            primary_model=primary_ai_model,
+            secondary_model=secondary_ai_model,
+        )
 
         if mapping_reviewer:
             values = mapping_reviewer('Ethnicity', values, categories)
@@ -154,7 +168,7 @@ def process_specific_ethnicity(ethnicity):
 
 
 
-def process_gender(data, memory_dir=None, mapping_reviewer=None):
+def process_gender(data, memory_dir=None, mapping_reviewer=None, primary_ai_model=None, secondary_ai_model=None):
     """
     Process the 'Gender' column in the given DataFrame.
 
@@ -205,7 +219,13 @@ def process_gender(data, memory_dir=None, mapping_reviewer=None):
         """
 
         # Use AI to map the new values
-        values = user_call_ai(prompt, categories, value_to_create_mappings)
+        values = user_call_ai(
+            prompt,
+            categories,
+            value_to_create_mappings,
+            primary_model=primary_ai_model,
+            secondary_model=secondary_ai_model,
+        )
 
         if mapping_reviewer:
             values = mapping_reviewer('Gender', values, categories)

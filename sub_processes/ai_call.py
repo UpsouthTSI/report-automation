@@ -1,10 +1,12 @@
 import json
 import pandas as pd
 
-def ai_call(prompt, secondary_model=False):
-    if secondary_model:
-        return ai_call_ollama(prompt, model="deepseek-r1:7b")
-    return ai_call_ollama(prompt)
+DEFAULT_PRIMARY_MODEL = 'llama3.1:8b'
+DEFAULT_SECONDARY_MODEL = 'deepseek-r1:7b'
+
+
+def ai_call(prompt, model=DEFAULT_PRIMARY_MODEL):
+    return ai_call_ollama(prompt, model=model)
 
 def ai_call_ollama(prompt, model="llama3.1:8b"):
     import ollama
@@ -15,7 +17,7 @@ def ai_call_ollama(prompt, model="llama3.1:8b"):
 
 
 
-def user_call_ai(prompt,categories, set_of_values, additions=[], secondary_model=False):
+def user_call_ai(prompt, categories, set_of_values, additions=[], primary_model=None, secondary_model=None):
     """
     Calls the AI model to map raw answers to categories.
     The answer is run through various checks to ensure it is valid JSON and contains all the raw answers. 
@@ -25,7 +27,8 @@ def user_call_ai(prompt,categories, set_of_values, additions=[], secondary_model
     categories: The list of categories to map the raw answers to
     set_of_values: The set of raw answers to map to the categories
     additions: Additional information to include in the prompt
-    secondary_model: Whether to use the secondary AI model
+    primary_model: Model that creates the initial mappings
+    secondary_model: Model that verifies the initial mappings
 
     Returns:
     A dictionary mapping the raw answers to the categories
@@ -33,8 +36,12 @@ def user_call_ai(prompt,categories, set_of_values, additions=[], secondary_model
 
     """
 
-
-    response = ai_call(prompt.format(categories=categories, set_of_values=set_of_values, additions='\n'.join(additions)), secondary_model=secondary_model)  # Assuming ai_call is a function that sends the prompt to an AI model and returns the response
+    primary_model = primary_model or DEFAULT_PRIMARY_MODEL
+    secondary_model = secondary_model or DEFAULT_SECONDARY_MODEL
+    response = ai_call(
+        prompt.format(categories=categories, set_of_values=set_of_values, additions='\n'.join(additions)),
+        model=primary_model,
+    )
 
     secondary_prompt = f"""
         The following prompt was used to generate a mapping of raw answers to categories: 
@@ -48,10 +55,10 @@ def user_call_ai(prompt,categories, set_of_values, additions=[], secondary_model
         Please reply with ONLY a valid JSON object like: {{"raw answer": "category", ...}}.
         Do not include any other text or explanation.
     """
-    secondary_response = ai_call(secondary_prompt, secondary_model=not secondary_model)
+    secondary_response = ai_call(secondary_prompt, model=secondary_model)
 
     #check if the response is valid JSON, if not, ask the AI to return valid JSON
-    json_response = check_json_ai(secondary_response)
+    json_response = check_json_ai(secondary_response, model=secondary_model)
     
     #Drop any keys that are not in the set of values and any values that are not in the categories
     json_response = {k: v for k, v in json_response.items() if k in set_of_values and v in categories}
@@ -61,7 +68,14 @@ def user_call_ai(prompt,categories, set_of_values, additions=[], secondary_model
         print("The AI response does not contain all the raw answers. Adding the missing raw answers")
         print(f"Difference between keys: {set_of_values - json_response.keys()}, {json_response.keys() - set_of_values}")
         difference = set_of_values - json_response.keys()
-        user_call_result = user_call_ai(prompt, categories, difference, additions, secondary_model=not secondary_model)
+        user_call_result = user_call_ai(
+            prompt,
+            categories,
+            difference,
+            additions,
+            primary_model=primary_model,
+            secondary_model=secondary_model,
+        )
         json_response.update(user_call_result)
 
     # pass the response to a secondary AI to double check the mapping and ensure it is correct, if not, ask the AI to return a corrected mapping
@@ -74,7 +88,7 @@ def user_call_ai(prompt,categories, set_of_values, additions=[], secondary_model
     #might need to do more cleaning of the response to ensure it's valid JSON, but for now we'll assume the AI returns valid JSON
     return json_response
 
-def check_json_ai(response):
+def check_json_ai(response, model=None):
     try:
         return json.loads(response)
     except json.JSONDecodeError:
@@ -87,10 +101,10 @@ def check_json_ai(response):
             Do not include any other text or explanation.
             Please check your JSON is valid before replying.
             """
-        response = ai_call(json_prompt)
-        return check_json_ai(response)
+        response = ai_call(json_prompt, model=model)
+        return check_json_ai(response, model=model)
 
-def brief_ai_summary(users, challenges, sponsors, ethnicity_table):
+def brief_ai_summary(users, challenges, sponsors, ethnicity_table, model=None):
     """
     Generates a brief summary of the data sets using an AI model.
 
@@ -140,5 +154,5 @@ def brief_ai_summary(users, challenges, sponsors, ethnicity_table):
         Ensure that any numbers or statistics are accurate and relevant to the data sets provided.
         Please only include the summary and do not include any other text or explanation.
     """
-    response = ai_call(prompt)
+    response = ai_call(prompt, model=model or DEFAULT_PRIMARY_MODEL)
     return response

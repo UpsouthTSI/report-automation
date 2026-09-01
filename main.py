@@ -17,6 +17,8 @@ def run_processing(
     regional_geodata_file=None,
     memory_directory=None,
     mapping_reviewer=None,
+    primary_ai_model=None,
+    secondary_ai_model=None,
 ):
     """Process selected source files and write all resultant CSV files."""
     if memory_directory is None:
@@ -35,6 +37,8 @@ def run_processing(
         users,
         memory_dir=memory_directory,
         mapping_reviewer=mapping_reviewer,
+        primary_ai_model=primary_ai_model,
+        secondary_ai_model=secondary_ai_model,
     )
     processed_challenges, reward_table = challenge_data(challenges)
     processed_sponsors = sponsor_data(sponsors)
@@ -45,7 +49,13 @@ def run_processing(
         regional_geodata_file=regional_geodata_file,
     )
 
-    print(brief_ai_summary(processed_users, processed_challenges, processed_sponsors, ethnicity_table))
+    print(brief_ai_summary(
+        processed_users,
+        processed_challenges,
+        processed_sponsors,
+        ethnicity_table,
+        model=primary_ai_model,
+    ))
     # Save the processed data to CSV files
     ethnicity_table.to_csv(os.path.join(output_directory, 'ethnicity_table.csv'), index=True)
     ethnicity_join_table.to_csv(os.path.join(output_directory, 'ethnicity_join_table.csv'), index=False)
