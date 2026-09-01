@@ -43,7 +43,6 @@ def process_DOB(data):
     Returns:    
         pd.DataFrame: The user data with an additional 'Processed_DOB' column.
     """
-    print(data['DateOfBirth'])
     # Convert the 'DOB' column to datetime format
     data['Processed_DOB'] = pd.to_datetime(data['DateOfBirth'], errors='coerce', format='%d/%m/%Y', dayfirst=True)
 
@@ -308,7 +307,6 @@ def process_postcode(data):
 
     # Use regex to check if the Postcode column contains valid NZ postcodes (4 digits) or no postcode (NaN)
     if not data['UserPostcode'].map(lambda x: re.match(r'^\d{4}$|<NA>$', str(x).strip()) is not None).all():
-        print("Invalid Postcodes found.")
         # Show the invalid postcodes
         for index, row in data.iterrows():
             postcode = row['UserPostcode']
@@ -317,7 +315,7 @@ def process_postcode(data):
                     #padd with a leading zero
                     data.loc[index, 'UserPostcode'] = '0' + str(postcode).strip()
                 else:
-                    print(f"Invalid Postcode: {postcode} at index {index}")
+                    print(f"Invalid Postcode: {postcode} at index {index}, replacing with Unknown")
                     data.loc[index, 'UserPostcode'] = pd.NA
 
     return data

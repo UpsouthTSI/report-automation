@@ -1,9 +1,11 @@
 import sys
 import traceback
 import os
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from PyQt6.QtCore import QMutex, QThread, QWaitCondition, pyqtSignal
+from PyQt6.QtGui import QTextCursor
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -21,6 +23,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -28,10 +31,23 @@ from PyQt6.QtWidgets import (
 from main import run_processing
 
 
+class ProgressOutput:
+    def __init__(self, write_callback):
+        self.write_callback = write_callback
+
+    def write(self, message):
+        if message:
+            self.write_callback(message)
+
+    def flush(self):
+        pass
+
+
 class ProcessingWorker(QThread):
     completed = pyqtSignal()
     failed = pyqtSignal(str)
     mapping_review_requested = pyqtSignal(str, dict, list)
+    progress_updated = pyqtSignal(str)
 
     def __init__(self, paths):
         super().__init__()
@@ -57,9 +73,12 @@ class ProcessingWorker(QThread):
 
     def run(self):
         try:
-            run_processing(**self.paths, mapping_reviewer=self.review_mappings)
+            with redirect_stdout(ProgressOutput(self.progress_updated.emit)):
+                run_processing(**self.paths, mapping_reviewer=self.review_mappings)
         except Exception:
-            self.failed.emit(traceback.format_exc())
+            error = traceback.format_exc()
+            self.progress_updated.emit(error)
+            self.failed.emit(error)
         else:
             self.completed.emit()
 
@@ -137,7 +156,7 @@ class BuzzlyWindow(QMainWindow):
         super().__init__()
         self.worker = None
         self.setWindowTitle('Buzzly Data Processor')
-        self.setMinimumWidth(720)
+        self.setMinimumWidth(980)
 
         central_widget = QWidget()
         layout = QVBoxLayout(central_widget)
@@ -151,6 +170,12 @@ class BuzzlyWindow(QMainWindow):
         layout.addWidget(title)
         layout.addWidget(subtitle)
 
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(16)
+        layout.addLayout(content_layout, 1)
+        controls_layout = QVBoxLayout()
+        content_layout.addLayout(controls_layout, 3)
+
         required_section = self.create_section('Required source data')
         required_form = QFormLayout(required_section)
         required_form.setSpacing(12)
@@ -160,7 +185,7 @@ class BuzzlyWindow(QMainWindow):
         required_form.addRow('challenges.csv', self.challenges)
         required_form.addRow('sponsors.csv', self.sponsors)
         required_form.addRow('users.csv', self.users)
-        layout.addWidget(required_section)
+        controls_layout.addWidget(required_section)
 
         optional_section = self.create_section('Optional geospatial data')
         optional_form = QFormLayout(optional_section)
@@ -169,13 +194,13 @@ class BuzzlyWindow(QMainWindow):
         self.regions = PathSelector('Regional councils', required=False)
         optional_form.addRow('postcode_boundaries.zip', self.postcodes)
         optional_form.addRow('regional_councils.zip', self.regions)
-        layout.addWidget(optional_section)
+        controls_layout.addWidget(optional_section)
 
         output_section = self.create_section('Output')
         output_form = QFormLayout(output_section)
         self.output = PathSelector('Output folder', directory=True)
         output_form.addRow('Processed CSV folder', self.output)
-        layout.addWidget(output_section)
+        controls_layout.addWidget(output_section)
 
         ai_section = self.create_section('AI settings')
         ai_form = QFormLayout(ai_section)
@@ -194,15 +219,24 @@ class BuzzlyWindow(QMainWindow):
         self.secondary_ai_model.setToolTip('Verifies generated mappings and corrects invalid JSON responses.')
         ai_form.addRow('Primary Ollama model', self.primary_ai_model)
         ai_form.addRow('Secondary Ollama model', self.secondary_ai_model)
-        layout.addWidget(ai_section)
+        controls_layout.addWidget(ai_section)
 
         self.status = QLabel('Ready to process data.')
         self.status.setObjectName('status')
         self.process_button = QPushButton('Process data')
         self.process_button.clicked.connect(self.process_data)
-        layout.addWidget(self.status)
-        layout.addWidget(self.process_button)
-        layout.addStretch()
+        self.progress_log = QTextEdit()
+        self.progress_log.setReadOnly(True)
+        self.progress_log.setPlaceholderText('Processing updates will appear here.')
+        self.progress_log.setMinimumHeight(180)
+        controls_layout.addWidget(self.status)
+        controls_layout.addWidget(self.process_button)
+        controls_layout.addStretch()
+
+        progress_layout = QVBoxLayout()
+        progress_layout.addWidget(QLabel('Processing progress'))
+        progress_layout.addWidget(self.progress_log, 1)
+        content_layout.addLayout(progress_layout, 2)
 
         self.setCentralWidget(central_widget)
         self.setStyleSheet(
@@ -264,6 +298,7 @@ class BuzzlyWindow(QMainWindow):
 
         self.process_button.setEnabled(False)
         self.status.setText('Processing data. This may take a few minutes while mappings are generated.')
+        self.progress_log.clear()
         self.worker = ProcessingWorker({
             'challenges_file': self.challenges.value(),
             'sponsors_file': self.sponsors.value(),
@@ -277,7 +312,13 @@ class BuzzlyWindow(QMainWindow):
         self.worker.completed.connect(self.processing_completed)
         self.worker.failed.connect(self.processing_failed)
         self.worker.mapping_review_requested.connect(self.review_mappings)
+        self.worker.progress_updated.connect(self.append_progress)
         self.worker.start()
+
+    def append_progress(self, message):
+        self.progress_log.moveCursor(QTextCursor.MoveOperation.End)
+        self.progress_log.insertPlainText(message)
+        self.progress_log.ensureCursorVisible()
 
     def review_mappings(self, mapping_type, values, categories):
         dialog = MappingReviewDialog(mapping_type, values, categories, self)

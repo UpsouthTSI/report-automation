@@ -153,16 +153,9 @@ def brief_ai_summary(users, challenges, sponsors, ethnicity_table, model=None):
     #get users that have signed up last calendar month, for below it is currently going from the current date but need to make it go from last calender month
     last_month_start = pd.Timestamp.now().replace(day=1) - pd.DateOffset(months=1)
     last_month_end = pd.Timestamp.now().replace(day=1)
-    print(f"Last month start: {last_month_start}, Last month end: {last_month_end}")
     new_users = users[(pd.to_datetime(users['AccountCreatedAt'], errors='coerce', dayfirst=True) >= last_month_start)  & (pd.to_datetime(users['AccountCreatedAt'], errors='coerce', dayfirst=True) < last_month_end)]
     active_campaigns = challenges[(pd.to_datetime(challenges['ChallengeStartAt'], errors='coerce', dayfirst=True) < last_month_end) & (pd.to_datetime(challenges['ChallengeEndAt'], errors='coerce', dayfirst=True) >= last_month_start)]
-    print(f"New users last month: {len(new_users)}, Active campaigns last month: {len(active_campaigns)}")
-    print(active_campaigns[['ChallengeName', 'ChallengeStartAt', 'ChallengeEndAt']])
     
-    print(challenges[(pd.to_datetime(challenges['ChallengeStartAt'], errors='coerce', dayfirst=True) < last_month_end)][['ChallengeName', 'ChallengeStartAt', 'ChallengeEndAt']])
-    print(challenges[(pd.to_datetime(challenges['ChallengeEndAt'], errors='coerce', dayfirst=True) >= last_month_start)][['ChallengeName', 'ChallengeStartAt', 'ChallengeEndAt']])
-    temp = pd.to_datetime(challenges[challenges['ChallengeId'] == 57]['ChallengeStartAt'], errors='coerce', dayfirst=True)
-    print(temp, last_month_end, temp <= last_month_end)
     #provide some summary statistices
     prompt = f"""
         Please provide a brief summary of the following data sets:
