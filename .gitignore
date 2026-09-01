@@ -6,3 +6,4 @@ temp
 venv
 */__pycache__
 secrets.json
+.vscode
