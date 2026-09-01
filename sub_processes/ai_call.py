@@ -24,6 +24,7 @@ def ai_call_ollama(prompt, model="llama3.1:8b"):
     return response.message.content.strip().removeprefix("```json").removeprefix("```").removesuffix("```")
 
 def ai_call_gpt(prompt, model="gpt-5"):
+    raise NotImplementedError("GPT API support is not yet implemented.")
     from openai import OpenAI
     client = OpenAI()
     response = client.chat.completions.create(
