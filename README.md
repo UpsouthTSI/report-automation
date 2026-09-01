@@ -19,6 +19,7 @@ To run the program you need at minimum the following complete datasets:
 1) challenges.csv
 2) sponsors.csv
 3) users.csv
+
 Once run it will process the data and generate the new data files:
 1) ethnicity_join_table.csv
 2) ethnicity_table.csv
@@ -27,6 +28,7 @@ Once run it will process the data and generate the new data files:
 5) processed_sponsors.csv
 6) reward_table.csv
 7) submissions_join_table.csv
+
 Once run it will store in memory the following:
 1) ethnicity_mapping.json
 2) gender_mapping.json
