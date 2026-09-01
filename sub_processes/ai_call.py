@@ -11,6 +11,10 @@ def ai_call(prompt, model=DEFAULT_PRIMARY_MODEL):
         return ai_call_ollama(prompt, model=model.split(':')[1])
     elif model.split(':')[0] == 'gpt':
         return ai_call_gpt(prompt, model=model.split(':')[1])
+    elif model.split(':')[0] == 'gemini':
+        raise ValueError(f"Unsupported AI model: {model}")
+    else:
+        raise ValueError(f"Unsupported AI model: {model}")
 
 def ai_call_ollama(prompt, model="llama3.1:8b"):
     import ollama
@@ -21,20 +25,14 @@ def ai_call_ollama(prompt, model="llama3.1:8b"):
 
 def ai_call_gpt(prompt, model="gpt-5"):
     from openai import OpenAI
-    try:
-        client = OpenAI()
-    except Exception as error:
-        raise RuntimeError(
-            'An OpenAI API key is required. Run the graphical application and enter it in the prompt.'
-        ) from error
+    client = OpenAI()
     response = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "user", "content": prompt}
         ]
     )
-    return response.choices[0].message.content.strip().removeprefix("```json").removeprefix("```").removesuffix("```")
-
+    return response.output_text.strip().removeprefix("```json").removeprefix("```").removesuffix("```")
 
 
 

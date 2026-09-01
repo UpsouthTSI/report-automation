@@ -6,3 +6,4 @@ shapely
 pyproj
 scipy
 openai
+google-generativeai

@@ -251,6 +251,17 @@ class BuzzlyWindow(QMainWindow):
                 return
             os.environ['OPENAI_API_KEY'] = api_key.strip()
 
+        if any(model.startswith('gemini:') for model in selected_models) and not os.environ.get('GEMINI_API_KEY'):
+            api_key, accepted = QInputDialog.getText(
+                self,
+                'Gemini API Key',
+                'Enter your Gemini API key:',
+                QLineEdit.EchoMode.Password,
+            )
+            if not accepted or not api_key.strip():
+                return
+            os.environ['GEMINI_API_KEY'] = api_key.strip()
+
         self.process_button.setEnabled(False)
         self.status.setText('Processing data. This may take a few minutes while mappings are generated.')
         self.worker = ProcessingWorker({
