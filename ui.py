@@ -1,5 +1,6 @@
 import sys
 import traceback
+import os
 from pathlib import Path
 
 from PyQt6.QtCore import QMutex, QThread, QWaitCondition, pyqtSignal
@@ -12,6 +13,7 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QFrame,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -177,13 +179,18 @@ class BuzzlyWindow(QMainWindow):
 
         ai_section = self.create_section('AI settings')
         ai_form = QFormLayout(ai_section)
+        # import AI model options from config.json
+        import json
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        ai_options = config.get('AI_MODEL_SUPPORT', [])
         self.primary_ai_model = QComboBox()
         self.primary_ai_model.setEditable(True)
-        self.primary_ai_model.addItems(['llama3.1:8b', 'deepseek-r1:7b'])
+        self.primary_ai_model.addItems(ai_options)
         self.primary_ai_model.setToolTip('Generates mappings and the data summary. Enter any model installed in Ollama.')
         self.secondary_ai_model = QComboBox()
         self.secondary_ai_model.setEditable(True)
-        self.secondary_ai_model.addItems(['deepseek-r1:7b', 'llama3.1:8b'])
+        self.secondary_ai_model.addItems(ai_options)
         self.secondary_ai_model.setToolTip('Verifies generated mappings and corrects invalid JSON responses.')
         ai_form.addRow('Primary Ollama model', self.primary_ai_model)
         ai_form.addRow('Secondary Ollama model', self.secondary_ai_model)
@@ -231,6 +238,18 @@ class BuzzlyWindow(QMainWindow):
         if not self.primary_ai_model.currentText().strip() or not self.secondary_ai_model.currentText().strip():
             QMessageBox.warning(self, 'Missing AI model', 'Enter both a primary and secondary Ollama model.')
             return
+
+        selected_models = [self.primary_ai_model.currentText().strip(), self.secondary_ai_model.currentText().strip()]
+        if any(model.startswith('gpt:') for model in selected_models) and not os.environ.get('OPENAI_API_KEY'):
+            api_key, accepted = QInputDialog.getText(
+                self,
+                'OpenAI API Key',
+                'Enter your OpenAI API key:',
+                QLineEdit.EchoMode.Password,
+            )
+            if not accepted or not api_key.strip():
+                return
+            os.environ['OPENAI_API_KEY'] = api_key.strip()
 
         self.process_button.setEnabled(False)
         self.status.setText('Processing data. This may take a few minutes while mappings are generated.')

@@ -5,3 +5,4 @@ pyshp
 shapely
 pyproj
 scipy
+openai

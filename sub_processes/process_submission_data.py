@@ -9,8 +9,6 @@ def process_submission_data(data, users, submissions_data):
     # Check data connected to users
     check_data_connected_to_users(data, users)
 
-    data = merge_submissions_data(data, submissions_data)
-
     processed_data = data  # Example placeholder
     return processed_data
 

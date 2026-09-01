@@ -1,12 +1,16 @@
 import json
 import pandas as pd
+import os
 
-DEFAULT_PRIMARY_MODEL = 'llama3.1:8b'
-DEFAULT_SECONDARY_MODEL = 'deepseek-r1:7b'
+DEFAULT_PRIMARY_MODEL = 'ollama:llama3.1:8b'
+DEFAULT_SECONDARY_MODEL = 'ollama:deepseek-r1:7b'
 
 
 def ai_call(prompt, model=DEFAULT_PRIMARY_MODEL):
-    return ai_call_ollama(prompt, model=model)
+    if model.split(':')[0] == 'ollama':
+        return ai_call_ollama(prompt, model=model.split(':')[1])
+    elif model.split(':')[0] == 'gpt':
+        return ai_call_gpt(prompt, model=model.split(':')[1])
 
 def ai_call_ollama(prompt, model="llama3.1:8b"):
     import ollama
@@ -14,6 +18,23 @@ def ai_call_ollama(prompt, model="llama3.1:8b"):
         [{"role": "user", "content": prompt}]
     )
     return response.message.content.strip().removeprefix("```json").removeprefix("```").removesuffix("```")
+
+def ai_call_gpt(prompt, model="gpt-5"):
+    from openai import OpenAI
+    try:
+        client = OpenAI()
+    except Exception as error:
+        raise RuntimeError(
+            'An OpenAI API key is required. Run the graphical application and enter it in the prompt.'
+        ) from error
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+    return response.choices[0].message.content.strip().removeprefix("```json").removeprefix("```").removesuffix("```")
+
 
 
 
@@ -43,9 +64,11 @@ def user_call_ai(prompt, categories, set_of_values, additions=[], primary_model=
         model=primary_model,
     )
 
+    temp_prompt = prompt.format(categories=categories, set_of_values=set_of_values, additions='\n'.join(additions))
+
     secondary_prompt = f"""
         The following prompt was used to generate a mapping of raw answers to categories: 
-        "{prompt.format(categories=categories, set_of_values=set_of_values, additions='\n'.join(additions))}"
+        "{temp_prompt}"
         
         The following is the mapping of raw answers to categories: 
         {response}
@@ -54,7 +77,7 @@ def user_call_ai(prompt, categories, set_of_values, additions=[], primary_model=
         If the mapping is correct, please return the same mapping.
         Please reply with ONLY a valid JSON object like: {{"raw answer": "category", ...}}.
         Do not include any other text or explanation.
-    """
+        """
     secondary_response = ai_call(secondary_prompt, model=secondary_model)
 
     #check if the response is valid JSON, if not, ask the AI to return valid JSON
