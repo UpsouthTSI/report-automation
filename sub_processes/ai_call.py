@@ -12,7 +12,7 @@ def ai_call(prompt, model=DEFAULT_PRIMARY_MODEL):
     elif model.split(':')[0] == 'gpt':
         return ai_call_gpt(prompt, model=model.split(':')[1])
     elif model.split(':')[0] == 'gemini':
-        raise ValueError(f"Unsupported AI model: {model}")
+        return ai_call_gemini(prompt, model=model.split(':')[1])
     else:
         raise ValueError(f"Unsupported AI model: {model}")
 
@@ -31,6 +31,15 @@ def ai_call_gpt(prompt, model="gpt-5"):
         messages=[
             {"role": "user", "content": prompt}
         ]
+    )
+    return response.output_text.strip().removeprefix("```json").removeprefix("```").removesuffix("```")
+
+def ai_call_gemini(prompt, model="gemini-3.7-flash"):
+    from google import genai
+    client = genai.Client()
+    response = client.interactions.create(
+        model=model,
+        input=prompt
     )
     return response.output_text.strip().removeprefix("```json").removeprefix("```").removesuffix("```")
 

@@ -294,6 +294,7 @@ class BuzzlyWindow(QMainWindow):
     def processing_failed(self, error):
         self.process_button.setEnabled(True)
         self.status.setText('Processing failed.')
+        print(error)
         QMessageBox.critical(self, 'Processing failed', error)
 
 
