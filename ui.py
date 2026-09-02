@@ -182,9 +182,11 @@ class BuzzlyWindow(QMainWindow):
         self.challenges = PathSelector('Challenges')
         self.sponsors = PathSelector('Sponsors')
         self.users = PathSelector('Users')
+        self.submissions = PathSelector('Submissions')
         required_form.addRow('challenges.csv', self.challenges)
         required_form.addRow('sponsors.csv', self.sponsors)
         required_form.addRow('users.csv', self.users)
+        required_form.addRow('submissions.csv', self.submissions)
         controls_layout.addWidget(required_section)
 
         optional_section = self.create_section('Optional geospatial data')
@@ -258,19 +260,19 @@ class BuzzlyWindow(QMainWindow):
         return section
 
     def process_data(self):
-        required_paths = [self.challenges.value(), self.sponsors.value(), self.users.value(), self.output.value()]
+        required_paths = [self.challenges.value(), self.sponsors.value(), self.users.value(), self.submissions.value(), self.output.value()]
         if not all(required_paths):
             QMessageBox.warning(self, 'Missing paths', 'Select all required CSV files and an output folder.')
             return
 
-        invalid_paths = [path for path in required_paths[:3] if not Path(path).is_file()]
+        invalid_paths = [path for path in required_paths[:4] if not Path(path).is_file()]
         optional_paths = [path for path in [self.postcodes.value(), self.regions.value()] if path]
         invalid_paths.extend(path for path in optional_paths if not Path(path).is_file())
         if invalid_paths:
             QMessageBox.warning(self, 'Invalid path', f'These selected files do not exist:\n' + '\n'.join(invalid_paths))
             return
         if not self.primary_ai_model.currentText().strip() or not self.secondary_ai_model.currentText().strip():
-            QMessageBox.warning(self, 'Missing AI model', 'Enter both a primary and secondary Ollama model.')
+            QMessageBox.warning(self, 'Missing AI model', 'Enter both a primary and secondary AI model.')
             return
 
         selected_models = [self.primary_ai_model.currentText().strip(), self.secondary_ai_model.currentText().strip()]
@@ -303,6 +305,7 @@ class BuzzlyWindow(QMainWindow):
             'challenges_file': self.challenges.value(),
             'sponsors_file': self.sponsors.value(),
             'users_file': self.users.value(),
+            'submissions_file': self.submissions.value(),
             'output_directory': self.output.value(),
             'geodata_file': self.postcodes.value() or None,
             'regional_geodata_file': self.regions.value() or None,

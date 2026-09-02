@@ -3,6 +3,7 @@ import os
 from sub_processes.ai_call import brief_ai_summary
 from sub_processes.get_data import get_from_csv
 from sub_processes.process_sponsor_data import sponsor_data
+from sub_processes.process_submission_data import submissions_data
 from sub_processes.process_user_data import user_data
 from sub_processes.process_challenge_data import challenge_data
 from sub_processes.postcode_geometry import postcode_coordinates
@@ -12,6 +13,7 @@ def run_processing(
     challenges_file,
     sponsors_file,
     users_file,
+    submissions_file,
     output_directory,
     geodata_file=None,
     regional_geodata_file=None,
@@ -31,6 +33,7 @@ def run_processing(
     users = get_from_csv(users_file)
     challenges = get_from_csv(challenges_file)
     sponsors = get_from_csv(sponsors_file)
+    submissions = get_from_csv(submissions_file)
 
     #Process the data
     processed_users, ethnicity_table, ethnicity_join_table, submissions_join_table = user_data(
@@ -40,6 +43,7 @@ def run_processing(
         primary_ai_model=primary_ai_model,
         secondary_ai_model=secondary_ai_model,
     )
+    processed_submissions = submissions_data(submissions, processed_users)
     processed_challenges, reward_table = challenge_data(challenges)
     processed_sponsors = sponsor_data(sponsors)
 
@@ -59,7 +63,8 @@ def run_processing(
     # Save the processed data to CSV files
     ethnicity_table.to_csv(os.path.join(output_directory, 'ethnicity_table.csv'), index=True)
     ethnicity_join_table.to_csv(os.path.join(output_directory, 'ethnicity_join_table.csv'), index=False)
-    submissions_join_table.to_csv(os.path.join(output_directory, 'submissions_join_table.csv'), index=False)
+    #submissions_join_table.to_csv(os.path.join(output_directory, 'submissions_join_table.csv'), index=False)
+    processed_submissions.to_csv(os.path.join(output_directory, 'submissions_join_table.csv'), index=False)
     processed_users.to_csv(os.path.join(output_directory, 'processed_users.csv'), index=False)
     processed_challenges.to_csv(os.path.join(output_directory, 'processed_challenges.csv'), index=False)
     reward_table.to_csv(os.path.join(output_directory, 'reward_table.csv'), index=False)
