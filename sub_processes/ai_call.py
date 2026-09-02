@@ -4,7 +4,22 @@ import os
 
 DEFAULT_PRIMARY_MODEL = 'ollama:llama3.1:8b'
 DEFAULT_SECONDARY_MODEL = 'ollama:deepseek-r1:7b'
+GEMINI_KEYRING_SERVICE = 'Buzzly Data Processor'
+GEMINI_KEYRING_USERNAME = 'gemini_api_key'
 
+def gemini_check_api_key(api_key):
+    from google import genai
+    client = genai.Client(api_key=api_key)
+    next(iter(client.models.list()), None)
+    return True
+
+def get_stored_gemini_api_key():
+    import keyring
+    return keyring.get_password(GEMINI_KEYRING_SERVICE, GEMINI_KEYRING_USERNAME)
+
+def store_gemini_api_key(api_key):
+    import keyring
+    keyring.set_password(GEMINI_KEYRING_SERVICE, GEMINI_KEYRING_USERNAME, api_key)
 
 def ai_call(prompt, model=DEFAULT_PRIMARY_MODEL):
     if model.split(':')[0] == 'ollama':

@@ -4,7 +4,7 @@ import os
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from PyQt6.QtCore import QMutex, QThread, QWaitCondition, pyqtSignal
+from PyQt6.QtCore import QMutex, QSettings, QThread, QWaitCondition, pyqtSignal
 from PyQt6.QtGui import QTextCursor
 from PyQt6.QtWidgets import (
     QApplication,
@@ -29,6 +29,7 @@ from PyQt6.QtWidgets import (
 )
 
 from main import run_processing
+from sub_processes.ai_call import gemini_check_api_key, get_stored_gemini_api_key, store_gemini_api_key
 
 
 class ProgressOutput:
@@ -155,6 +156,13 @@ class BuzzlyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.worker = None
+        self.settings = QSettings('Buzzly', 'Data Processor')
+        try:
+            stored_gemini_api_key = get_stored_gemini_api_key()
+        except Exception:
+            stored_gemini_api_key = None
+        if stored_gemini_api_key:
+            os.environ['GEMINI_API_KEY'] = stored_gemini_api_key
         self.setWindowTitle('Buzzly Data Processor')
         self.setMinimumWidth(980)
 
@@ -222,6 +230,8 @@ class BuzzlyWindow(QMainWindow):
         ai_form.addRow('Primary Ollama model', self.primary_ai_model)
         ai_form.addRow('Secondary Ollama model', self.secondary_ai_model)
         controls_layout.addWidget(ai_section)
+        self.restore_preferences()
+        self.connect_preference_signals()
 
         self.status = QLabel('Ready to process data.')
         self.status.setObjectName('status')
@@ -259,6 +269,35 @@ class BuzzlyWindow(QMainWindow):
         section.setObjectName(title)
         return section
 
+    def restore_preferences(self):
+        for setting_name, selector in self.preference_path_selectors().items():
+            selector.path_input.setText(str(self.settings.value(setting_name, '')))
+        self.primary_ai_model.setCurrentText(str(self.settings.value('primary_ai_model', self.primary_ai_model.currentText())))
+        self.secondary_ai_model.setCurrentText(str(self.settings.value('secondary_ai_model', self.secondary_ai_model.currentText())))
+
+    def connect_preference_signals(self):
+        for selector in self.preference_path_selectors().values():
+            selector.path_input.textChanged.connect(self.save_preferences)
+        self.primary_ai_model.currentTextChanged.connect(self.save_preferences)
+        self.secondary_ai_model.currentTextChanged.connect(self.save_preferences)
+
+    def preference_path_selectors(self):
+        return {
+            'challenges_file': self.challenges,
+            'sponsors_file': self.sponsors,
+            'users_file': self.users,
+            'submissions_file': self.submissions,
+            'postcode_file': self.postcodes,
+            'regions_file': self.regions,
+            'output_directory': self.output,
+        }
+
+    def save_preferences(self):
+        for setting_name, selector in self.preference_path_selectors().items():
+            self.settings.setValue(setting_name, selector.value())
+        self.settings.setValue('primary_ai_model', self.primary_ai_model.currentText().strip())
+        self.settings.setValue('secondary_ai_model', self.secondary_ai_model.currentText().strip())
+
     def process_data(self):
         required_paths = [self.challenges.value(), self.sponsors.value(), self.users.value(), self.submissions.value(), self.output.value()]
         if not all(required_paths):
@@ -295,6 +334,16 @@ class BuzzlyWindow(QMainWindow):
                 QLineEdit.EchoMode.Password,
             )
             if not accepted or not api_key.strip():
+                return
+            try:
+                gemini_check_api_key(api_key.strip())
+            except Exception as error:
+                QMessageBox.warning(self, 'Invalid Gemini API Key', f'Gemini could not validate this API key:\n{error}')
+                return
+            try:
+                store_gemini_api_key(api_key.strip())
+            except Exception as error:
+                QMessageBox.warning(self, 'Gemini API Key Not Saved', f'Gemini accepted this API key, but it could not be saved securely:\n{error}')
                 return
             os.environ['GEMINI_API_KEY'] = api_key.strip()
 
