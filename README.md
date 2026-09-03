@@ -20,6 +20,7 @@ To run the program you need at minimum the following complete datasets:
 1) challenges.csv
 2) sponsors.csv
 3) users.csv
+4) submissions.csv
 
 Once run it will process the data and generate the new data files:
 1) ethnicity_join_table.csv
@@ -34,6 +35,7 @@ Once run it will store in memory the following:
 1) ethnicity_mapping.json
 2) gender_mapping.json
 3) postcode_coordinates.json
+
 The first two of these are worth checking for mistakes as these are what the AI is being run through.
 Postcode Coordinates should be included as it will very rarely need to be updated see the Updating Postcode Table section for more information on that.
 These are stored to increase repeatability, reliablity (as the first two go through the AI which has no memory of previous runs) and speed up future runs.
@@ -46,6 +48,7 @@ If you are using ollama see https://ollama.com/download/windows for how to insta
 Once installed the following models need to be installed:
 - llama3.5:8b
 - deepseek-r1:7b
+
 If you are using Gemini you will be asked for a Gemini API key as you run the program.
 
 To choose the model you need to select a primary and secondary AI model in the ui.
