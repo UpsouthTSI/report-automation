@@ -4,3 +4,7 @@ pyshp
 shapely
 pyproj
 scipy
+openai
+google-genai
+keyring
+matplotlib
