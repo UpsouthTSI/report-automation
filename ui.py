@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
@@ -212,6 +213,18 @@ class BuzzlyWindow(QMainWindow):
         output_form.addRow('Processed CSV folder', self.output)
         controls_layout.addWidget(output_section)
 
+        finances_section = self.create_section('Financial information')
+        finances_form = QFormLayout(finances_section)
+        self.monthly_expenses = QLineEdit()
+        self.monthly_income = QLineEdit()
+        self.ytd_expenses = QLineEdit()
+        self.ytd_income = QLineEdit()
+        finances_form.addRow('Monthly expenses', self.monthly_expenses)
+        finances_form.addRow('Monthly income', self.monthly_income)
+        finances_form.addRow('YTD expenses', self.ytd_expenses)
+        finances_form.addRow('YTD income', self.ytd_income)
+        controls_layout.addWidget(finances_section)
+
         ai_section = self.create_section('AI settings')
         ai_form = QFormLayout(ai_section)
         # import AI model options from config.json
@@ -250,7 +263,11 @@ class BuzzlyWindow(QMainWindow):
         progress_layout.addWidget(self.progress_log, 1)
         content_layout.addLayout(progress_layout, 2)
 
-        self.setCentralWidget(central_widget)
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setWidget(central_widget)
+        self.setCentralWidget(scroll_area)
         self.setStyleSheet(
             'QMainWindow { background: #f6f7f4; }'
             'QLabel { color: #25332b; font-size: 14px; }'
@@ -314,6 +331,16 @@ class BuzzlyWindow(QMainWindow):
             QMessageBox.warning(self, 'Missing AI model', 'Enter both a primary and secondary AI model.')
             return
 
+        finances_fields = {
+            'monthly_expenses': self.monthly_expenses.text().strip(),
+            'monthly_income': self.monthly_income.text().strip(),
+            'ytd_expenses': self.ytd_expenses.text().strip(),
+            'ytd_income': self.ytd_income.text().strip(),
+        }
+        if not all(finances_fields.values()):
+            QMessageBox.warning(self, 'Missing financial information', 'Enter monthly and YTD expenses and income.')
+            return
+
         selected_models = [self.primary_ai_model.currentText().strip(), self.secondary_ai_model.currentText().strip()]
         if any(model.startswith('gpt:') for model in selected_models) and not os.environ.get('OPENAI_API_KEY'):
             api_key, accepted = QInputDialog.getText(
@@ -360,6 +387,7 @@ class BuzzlyWindow(QMainWindow):
             'regional_geodata_file': self.regions.value() or None,
             'primary_ai_model': self.primary_ai_model.currentText().strip(),
             'secondary_ai_model': self.secondary_ai_model.currentText().strip(),
+            'finances_data': finances_fields,
         })
         self.worker.completed.connect(self.processing_completed)
         self.worker.failed.connect(self.processing_failed)

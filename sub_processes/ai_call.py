@@ -150,7 +150,7 @@ def check_json_ai(response, model=None):
         response = ai_call(json_prompt, model=model)
         return check_json_ai(response, model=model)
 
-def brief_ai_summary(users, challenges, sponsors, ethnicity_table, model=None):
+def brief_ai_summary(users, challenges, ethnicity_table, model=None):
     """
     Generates a brief summary of the data sets using an AI model.
 
@@ -176,7 +176,6 @@ def brief_ai_summary(users, challenges, sponsors, ethnicity_table, model=None):
         Please provide a brief summary of the following data sets:
         Users: {users}
         Challenges: {challenges}
-        Sponsors: {sponsors}
         Ethnicity Table: {ethnicity_table}
         Active Challenges Last Month: {active_campaigns}
         
