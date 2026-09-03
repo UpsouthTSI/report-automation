@@ -10,11 +10,12 @@ This project is designed to clean and proces the relevant data to later be using
 
 ## Running
 1) Ensure you have entered the virtual environment by running `source .venv/bin/activate` for linux or `.\.venv\Scripts\Activate.ps1` for windows (See https://docs.python.org/3/library/venv.html for more information)
-2) Run the program by running `python main.py`
+2) Run the graphical application with `python ui.py`.
 
 Note that the program does require an AI to run, see AI requirements.
 
 ## Usage
+### Monthly Report Processing
 To run the program you need at minimum the following complete datasets:
 1) challenges.csv
 2) sponsors.csv
@@ -36,12 +37,19 @@ Once run it will store in memory the following:
 The first two of these are worth checking for mistakes as these are what the AI is being run through.
 Postcode Coordinates should be included as it will very rarely need to be updated see the Updating Postcode Table section for more information on that.
 These are stored to increase repeatability, reliablity (as the first two go through the AI which has no memory of previous runs) and speed up future runs.
+### Individual Challenge Processing
+To process an individual challenges data go into the 'Process Individual Challenges' tab and fill in the required fields.
 
 ## AI requirements.
-So far only local models are supported using ollama.
-See https://ollama.com/download/windows for how to install ollama.
+Ollama and Gemini are currently supported.
+If you are using ollama see https://ollama.com/download/windows for how to install ollama.
 Once installed the following models need to be installed:
 - llama3.5:8b
+- deepseek-r1:7b
+If you are using Gemini you will be asked for a Gemini API key as you run the program.
+
+To choose the model you need to select a primary and secondary AI model in the ui.
+To modify the models you can choose edit the config.json and add '[source]:[model]' to the list.
 
 ## The Memory folder
 The memory folder contains memory from previous runs regarding postcodes, gender mappings and ethnicity.

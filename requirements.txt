@@ -1,6 +1,10 @@
 pandas
+PyQt6
 ollama
 pyshp
 shapely
 pyproj
 scipy
+openai
+google-genai
+keyring
