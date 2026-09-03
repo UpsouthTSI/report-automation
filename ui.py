@@ -25,12 +25,14 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from main import run_processing
 from sub_processes.ai_call import gemini_check_api_key, get_stored_gemini_api_key, store_gemini_api_key
+from sub_processes.process_individual_challenge import process_from_beginning
 
 
 class ProgressOutput:
@@ -51,8 +53,9 @@ class ProcessingWorker(QThread):
     mapping_review_requested = pyqtSignal(str, dict, list)
     progress_updated = pyqtSignal(str)
 
-    def __init__(self, paths):
+    def __init__(self, processor, paths):
         super().__init__()
+        self.processor = processor
         self.paths = paths
         self.review_mutex = QMutex()
         self.review_complete = QWaitCondition()
@@ -76,7 +79,7 @@ class ProcessingWorker(QThread):
     def run(self):
         try:
             with redirect_stdout(ProgressOutput(self.progress_updated.emit)):
-                run_processing(**self.paths, mapping_reviewer=self.review_mappings)
+                self.processor(**self.paths, mapping_reviewer=self.review_mappings)
         except Exception:
             error = traceback.format_exc()
             self.progress_updated.emit(error)
@@ -167,8 +170,8 @@ class BuzzlyWindow(QMainWindow):
         self.setWindowTitle('Buzzly Data Processor')
         self.setMinimumWidth(980)
 
-        central_widget = QWidget()
-        layout = QVBoxLayout(central_widget)
+        processing_widget = QWidget()
+        layout = QVBoxLayout(processing_widget)
         layout.setSpacing(16)
         layout.setContentsMargins(28, 28, 28, 28)
 
@@ -231,14 +234,14 @@ class BuzzlyWindow(QMainWindow):
         import json
         with open('config.json', 'r') as f:
             config = json.load(f)
-        ai_options = config.get('AI_MODEL_SUPPORT', [])
+        self.ai_options = config.get('AI_MODEL_SUPPORT', [])
         self.primary_ai_model = QComboBox()
         self.primary_ai_model.setEditable(True)
-        self.primary_ai_model.addItems(ai_options)
+        self.primary_ai_model.addItems(self.ai_options)
         self.primary_ai_model.setToolTip('Generates mappings and the data summary. Enter any model installed in Ollama.')
         self.secondary_ai_model = QComboBox()
         self.secondary_ai_model.setEditable(True)
-        self.secondary_ai_model.addItems(ai_options)
+        self.secondary_ai_model.addItems(self.ai_options)
         self.secondary_ai_model.setToolTip('Verifies generated mappings and corrects invalid JSON responses.')
         ai_form.addRow('Primary Ollama model', self.primary_ai_model)
         ai_form.addRow('Secondary Ollama model', self.secondary_ai_model)
@@ -263,10 +266,13 @@ class BuzzlyWindow(QMainWindow):
         progress_layout.addWidget(self.progress_log, 1)
         content_layout.addLayout(progress_layout, 2)
 
+        tabs = QTabWidget()
+        tabs.addTab(processing_widget, 'Process all data')
+        tabs.addTab(self.create_individual_challenge_tab(), 'Process individual challenge')
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        scroll_area.setWidget(central_widget)
+        scroll_area.setWidget(tabs)
         self.setCentralWidget(scroll_area)
         self.setStyleSheet(
             'QMainWindow { background: #f6f7f4; }'
@@ -285,6 +291,50 @@ class BuzzlyWindow(QMainWindow):
         section = QFrame()
         section.setObjectName(title)
         return section
+
+    def create_individual_challenge_tab(self):
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setSpacing(16)
+        layout.setContentsMargins(28, 28, 28, 28)
+
+        title = QLabel('Individual Challenge Processor')
+        title.setObjectName('title')
+        layout.addWidget(title)
+        layout.addWidget(QLabel('Process and anonymise one challenge CSV file.'))
+
+        input_section = self.create_section('Input')
+        input_form = QFormLayout(input_section)
+        self.individual_challenge = PathSelector('Challenge file')
+        input_form.addRow('Challenge CSV file', self.individual_challenge)
+        layout.addWidget(input_section)
+
+        output_section = self.create_section('Output')
+        output_form = QFormLayout(output_section)
+        self.individual_output = PathSelector('Output folder', directory=True)
+        output_form.addRow('Output folder', self.individual_output)
+        layout.addWidget(output_section)
+
+        ai_section = self.create_section('AI settings')
+        ai_form = QFormLayout(ai_section)
+        self.individual_primary_ai_model = QComboBox()
+        self.individual_primary_ai_model.setEditable(True)
+        self.individual_primary_ai_model.addItems(self.ai_options)
+        self.individual_secondary_ai_model = QComboBox()
+        self.individual_secondary_ai_model.setEditable(True)
+        self.individual_secondary_ai_model.addItems(self.ai_options)
+        ai_form.addRow('Primary AI model', self.individual_primary_ai_model)
+        ai_form.addRow('Secondary AI model', self.individual_secondary_ai_model)
+        layout.addWidget(ai_section)
+
+        self.individual_status = QLabel('Ready to process an individual challenge.')
+        self.individual_status.setObjectName('status')
+        self.individual_process_button = QPushButton('Process individual challenge')
+        self.individual_process_button.clicked.connect(self.process_individual_challenge)
+        layout.addWidget(self.individual_status)
+        layout.addWidget(self.individual_process_button)
+        layout.addStretch()
+        return tab
 
     def restore_preferences(self):
         for setting_name, selector in self.preference_path_selectors().items():
@@ -377,7 +427,7 @@ class BuzzlyWindow(QMainWindow):
         self.process_button.setEnabled(False)
         self.status.setText('Processing data. This may take a few minutes while mappings are generated.')
         self.progress_log.clear()
-        self.worker = ProcessingWorker({
+        self.worker = ProcessingWorker(run_processing, {
             'challenges_file': self.challenges.value(),
             'sponsors_file': self.sponsors.value(),
             'users_file': self.users.value(),
@@ -391,6 +441,33 @@ class BuzzlyWindow(QMainWindow):
         })
         self.worker.completed.connect(self.processing_completed)
         self.worker.failed.connect(self.processing_failed)
+        self.worker.mapping_review_requested.connect(self.review_mappings)
+        self.worker.progress_updated.connect(self.append_progress)
+        self.worker.start()
+
+    def process_individual_challenge(self):
+        challenge_file = self.individual_challenge.value()
+        output_directory = self.individual_output.value()
+        primary_ai_model = self.individual_primary_ai_model.currentText().strip()
+        secondary_ai_model = self.individual_secondary_ai_model.currentText().strip()
+        if not all([challenge_file, output_directory, primary_ai_model, secondary_ai_model]):
+            QMessageBox.warning(self, 'Missing information', 'Select a challenge CSV file and output folder, then enter both AI models.')
+            return
+        if not Path(challenge_file).is_file():
+            QMessageBox.warning(self, 'Invalid path', 'The selected challenge CSV file does not exist.')
+            return
+
+        self.individual_process_button.setEnabled(False)
+        self.individual_status.setText('Processing individual challenge.')
+        self.progress_log.clear()
+        self.worker = ProcessingWorker(process_from_beginning, {
+            'challenge_file': challenge_file,
+            'output_dir': output_directory,
+            'primary_ai_model': primary_ai_model,
+            'secondary_ai_model': secondary_ai_model,
+        })
+        self.worker.completed.connect(self.individual_processing_completed)
+        self.worker.failed.connect(self.individual_processing_failed)
         self.worker.mapping_review_requested.connect(self.review_mappings)
         self.worker.progress_updated.connect(self.append_progress)
         self.worker.start()
@@ -415,6 +492,17 @@ class BuzzlyWindow(QMainWindow):
     def processing_failed(self, error):
         self.process_button.setEnabled(True)
         self.status.setText('Processing failed.')
+        print(error)
+        QMessageBox.critical(self, 'Processing failed', error)
+
+    def individual_processing_completed(self):
+        self.individual_process_button.setEnabled(True)
+        self.individual_status.setText('Individual challenge processing complete.')
+        QMessageBox.information(self, 'Complete', f'Processed challenge CSV was written to:\n{self.individual_output.value()}')
+
+    def individual_processing_failed(self, error):
+        self.individual_process_button.setEnabled(True)
+        self.individual_status.setText('Individual challenge processing failed.')
         print(error)
         QMessageBox.critical(self, 'Processing failed', error)
 
