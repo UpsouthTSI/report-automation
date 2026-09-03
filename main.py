@@ -1,8 +1,10 @@
+import csv
 import os
 
 from sub_processes.ai_call import brief_ai_summary
 from sub_processes.get_data import get_from_csv
 from sub_processes.process_sponsor_data import sponsor_data
+from sub_processes.process_submission_data import submissions_data
 from sub_processes.process_user_data import user_data
 from sub_processes.process_challenge_data import challenge_data
 from sub_processes.postcode_geometry import postcode_coordinates
@@ -31,18 +33,35 @@ def run_processing(
     os.makedirs(memory_directory, exist_ok=True)
 
     # Load data from CSV files
-    users = get_from_csv(os.path.join(data_directory, 'users.csv'))
-    challenges = get_from_csv(os.path.join(data_directory, 'challenges.csv'))
-    sponsors = get_from_csv(os.path.join(data_directory, 'sponsors.csv'))
+    users = get_from_csv(users_file)
+    challenges = get_from_csv(challenges_file)
+    sponsors = get_from_csv(sponsors_file)
+    submissions = get_from_csv(submissions_file)
 
     #Process the data
-    processed_users, ethnicity_table, ethnicity_join_table, submissions_join_table = user_data(users, memory_dir=memory_directory)
+    processed_users, ethnicity_table, ethnicity_join_table, submissions_join_table = user_data(
+        users,
+        memory_dir=memory_directory,
+        mapping_reviewer=mapping_reviewer,
+        primary_ai_model=primary_ai_model,
+        secondary_ai_model=secondary_ai_model,
+    )
+    processed_submissions = submissions_data(submissions, processed_users)
     processed_challenges, reward_table = challenge_data(challenges)
     processed_sponsors = sponsor_data(sponsors)
 
-    postcode_table = postcode_coordinates(geodata_file, memory_dir=memory_directory, regional_geodata_file=regional_geodata_file)
+    postcode_table = postcode_coordinates(
+        geodata_file,
+        memory_dir=memory_directory,
+        regional_geodata_file=regional_geodata_file,
+    )
 
-    print(brief_ai_summary(processed_users, processed_challenges, processed_sponsors, ethnicity_table))
+    """print(brief_ai_summary(
+        processed_users,
+        processed_challenges,
+        ethnicity_table,
+        model=primary_ai_model,
+    ))"""
     # Save the processed data to CSV files
     ethnicity_table.to_csv(os.path.join(output_directory, 'ethnicity_table.csv'), index=True)
     ethnicity_join_table.to_csv(os.path.join(output_directory, 'ethnicity_join_table.csv'), index=False)

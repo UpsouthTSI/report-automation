@@ -28,6 +28,11 @@ def postcode_coordinates(geodata_file, memory_dir=None, regional_geodata_file=No
             for postcode, values in postcode_memory.items():
                 df_postcode.loc[len(df_postcode)] = [postcode, values[0], values[1], values[2], None]
             return df_postcode
+    if not geodata_file:
+        raise FileNotFoundError(
+            'Postcode boundaries are required when no cached postcode coordinates are available. '
+            'Select postcode_boundaries.zip or retain postcode_coordinates.json in the memory folder.'
+        )
     postcode_memory = {}
     sf = shapefile.Reader(geodata_file)
     for i in range(len(sf.shapes())):
@@ -57,9 +62,7 @@ def postcode_region(postcode_memory, regional_geodata_file):
     Returns:
         str or None: The region of the postcode, or None if the postcode is not found.
     """
-    print(f"Getting region for postcodes using {regional_geodata_file}")
     sf = shapefile.Reader(regional_geodata_file)
-    print(sf.fields)
     regions = {}
     for i in range(len(sf.shapes())):
         shape = sf.shape(i)
@@ -71,13 +74,11 @@ def postcode_region(postcode_memory, regional_geodata_file):
         shape_points_wgs84 = [transformer.transform(x, y) for x, y in shape.points]
         region = sf.record(i)[1]
         regions[region] = Polygon(shape_points_wgs84)
-    print(regions)
 
     for keys, point in postcode_memory.items():
         for key in regions.keys():
             if regions[key].contains(Point(point)):
                 region = key
-                print(f"Postcode {keys} is in region {region}")
                 postcode_memory[keys] = (point[0], point[1], region)
                 break
 
@@ -92,7 +93,6 @@ def postcode_region(postcode_memory, regional_geodata_file):
             _, index = tree.query(point)
             nearest_postcode = [key for key in postcode_memory if len(postcode_memory[key]) == 3][index]
             region = postcode_memory[nearest_postcode][2]
-            print(f"Assigning postcode {postcode} to nearest region {region}")
             postcode_memory[postcode] = (point[0], point[1], region)
 
     return None

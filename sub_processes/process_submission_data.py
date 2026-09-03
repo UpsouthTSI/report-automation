@@ -1,18 +1,18 @@
+import pandas as pd
 
 
-
-def process_submission_data(data, users, submissions_data):
+def submissions_data(data, users):
 
     # Remove identifiable data
     data = remove_identifiable_info(data)
 
     # Check data connected to users
-    check_data_connected_to_users(data, users)
+    data = check_data_connected_to_users(data, users)
 
-    data = merge_submissions_data(data, submissions_data)
+    # Remove non monetary reward data
+    data = remove_non_monetary_reward_data(data)
 
-    processed_data = data  # Example placeholder
-    return processed_data
+    return data
 
 
 def remove_identifiable_info(data):
@@ -26,7 +26,7 @@ def remove_identifiable_info(data):
         pd.DataFrame: The user data with identifiable information removed.
     """
     # Add code to remove identifiable information from the DataFrame
-    data = data.drop(columns=['UserName', 'UserEmail', 'FirstName', 'LastName', 'SubmissionTitle', 'SubmissionBody', 'VideoId', 'VideoThumbnailUrl', 'VideoHLSUrl', 'VideoMP4Url', 'PublicImageUrl', 'PublicAudioUrl', 'PublicDocumentUrl'])
+    data = data.drop(columns=['UserName', 'UserEmail', 'FirstName', 'LastName', 'Ethnicity', 'Gender', 'UserPostcode', 'SubmissionTitle', 'SubmissionBody', 'VideoId', 'VideoThumbnailUrl', 'VideoHLSUrl', 'VideoMP4Url', 'PublicImageUrl', 'PublicAudioUrl', 'PublicDocumentUrl', 'Reward1-info', 'Reward2-info'])
 
     # looking for emails and phone numbers in any other columns and removing them
     for column in data.columns:
@@ -48,7 +48,29 @@ def check_data_connected_to_users(data, users):
     """
     # join the data with users on 'UserId'
     number_that_do_not_match = len(data) - len(data.merge(users, left_on='UserId', right_on='UserID', how='inner'))
-    print(f"Number of rows that do not match users: {number_that_do_not_match}")
+    if number_that_do_not_match > 0:
+        print(f"Number of submissions not connected to users: {number_that_do_not_match}, removing these records.")
     temp_data = data.merge(users, left_on='UserId', right_on='UserID', how='inner')
     matching_DOB = temp_data[temp_data['DateOfBirth_x'] == temp_data['DateOfBirth_y']]
-    print(f"Number of rows without matching Date of Birth: {len(temp_data) - len(matching_DOB)}")
+    number_without_matching_DOB = len(temp_data) - len(matching_DOB)
+    if number_without_matching_DOB > 0:
+        print(temp_data[temp_data['DateOfBirth_x'] != temp_data['DateOfBirth_y']][['SubmissionId', 'UserId', 'DateOfBirth_x', 'DateOfBirth_y']])
+        print(f"Number of submissions without matching Date of Birth to the user records: {number_without_matching_DOB}, removing these records.")
+    return data[data['SubmissionId'].isin(matching_DOB['SubmissionId'])]
+
+def remove_non_monetary_reward_data(data):
+    """
+    Remove non-monetary reward data from the DataFrame.
+
+    Args:
+        data (pd.DataFrame): The user submission data.
+
+    Returns:
+        pd.DataFrame: The user submission data with non-monetary reward data removed.
+    """
+    # Replace non monetary values with zero
+    data['Reward1-amount'] = pd.to_numeric(data['Reward1-amount'].str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
+    data['Reward2-amount'] = pd.to_numeric(data['Reward2-amount'].str.replace(r'[^\d.]', '', regex=True), errors='coerce').fillna(0)
+    data['TotalRewardAmount'] = pd.to_numeric(data['Reward1-amount'] + data['Reward2-amount'], errors='coerce').fillna(0)
+    
+    return data
