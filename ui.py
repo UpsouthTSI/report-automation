@@ -5,7 +5,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 from PyQt6.QtCore import QMutex, QSettings, QThread, QWaitCondition, pyqtSignal
-from PyQt6.QtGui import QTextCursor
+from PyQt6.QtGui import QColor, QPalette, QTextCursor
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -275,15 +275,20 @@ class BuzzlyWindow(QMainWindow):
         scroll_area.setWidget(tabs)
         self.setCentralWidget(scroll_area)
         self.setStyleSheet(
+            'QWidget { color: #25332b; }'
             'QMainWindow { background: #f6f7f4; }'
             'QLabel { color: #25332b; font-size: 14px; }'
             'QLabel#title { font-size: 26px; font-weight: 700; }'
             'QLabel#status { color: #456052; }'
-            'QFrame { background: white; border: 1px solid #d7ddd7; border-radius: 6px; }'
-            'QLineEdit { padding: 8px; border: 1px solid #b7c3b9; border-radius: 4px; background: #fff; }'
+            'QFrame { background: white; border: 1px solid #d7ddd7; border-radius: 6px; color: #25332b; }'
+            'QLineEdit, QComboBox, QTableWidget { background: #ffffff; color: #25332b; selection-background-color: #dfeae4; selection-color: #25332b; }'
+            'QLineEdit, QComboBox { padding: 8px; border: 1px solid #b7c3b9; border-radius: 4px; }'
+            'QTableWidget { gridline-color: #d7ddd7; alternate-background-color: #f7f9f7; }'
+            'QHeaderView::section { background: #edf2ee; color: #25332b; border: 1px solid #d7ddd7; }'
             'QPushButton { padding: 9px 14px; background: #146c43; color: white; border: none; border-radius: 4px; font-weight: 600; }'
             'QPushButton:hover { background: #0e5735; }'
-            'QPushButton:disabled { background: #aeb8b0; }'
+            'QPushButton:disabled { background: #aeb8b0; color: #f3f4f1; }'
+            'QMessageBox, QDialog { background: #f6f7f4; color: #25332b; }'
         )
 
     @staticmethod
@@ -509,6 +514,21 @@ class BuzzlyWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    app.setStyle('Fusion')
+
+    palette = QPalette()
+    palette.setColor(QPalette.ColorRole.Window, QColor('#f6f7f4'))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor('#25332b'))
+    palette.setColor(QPalette.ColorRole.Base, QColor('#ffffff'))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor('#f3f6f4'))
+    palette.setColor(QPalette.ColorRole.Text, QColor('#25332b'))
+    palette.setColor(QPalette.ColorRole.Button, QColor('#146c43'))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor('#ffffff'))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor('#dfeae4'))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor('#25332b'))
+    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor('#6a7e73'))
+    app.setPalette(palette)
+
     window = BuzzlyWindow()
     window.show()
     sys.exit(app.exec())
