@@ -34,6 +34,7 @@ Once run it will store in memory the following:
 1) ethnicity_mapping.json
 2) gender_mapping.json
 3) postcode_coordinates.json
+
 The first two of these are worth checking for mistakes as these are what the AI is being run through.
 Postcode Coordinates should be included as it will very rarely need to be updated see the Updating Postcode Table section for more information on that.
 These are stored to increase repeatability, reliablity (as the first two go through the AI which has no memory of previous runs) and speed up future runs.
