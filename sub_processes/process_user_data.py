@@ -1,4 +1,7 @@
 import json
+import json
+with open('config.json', 'r') as f:
+    config = json.load(f)
 import os
 import re
 import pandas as pd
@@ -68,7 +71,7 @@ def get_ethnicity(data, memory_dir=None, mapping_reviewer=None, primary_ai_model
         specific_ethnicities = process_specific_ethnicity(ethnicity)
         set_of_ethnicities.update(specific_ethnicities)
 
-    categories = ['New Zealand European', 'Māori', 'Pacifica', 'Asian', 'Middle Eastern', 'Latin American', 'African', 'Other', 'Unknown']
+    categories = config["ETHNICITY_CLASSIFICATIONS"] 
 
     old_mappings = {}
 
@@ -193,7 +196,7 @@ def process_gender(data, memory_dir=None, mapping_reviewer=None, primary_ai_mode
     unique_genders = data['Gender'].unique()
 
     # Define the categorys
-    categories = ['Male', 'Female', 'Non-binary', 'Prefer not to say', 'Other', 'Unknown']
+    categories = config["GENDER_CLASSIFICATIONS"]
 
     # Initialize an empty dictionary to store old mappings
     old_mappings = {}
