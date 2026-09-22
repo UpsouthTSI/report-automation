@@ -61,7 +61,7 @@ def ai_call_gemini(prompt, model="gemini-3.7-flash"):
 
 
 
-def user_call_ai(prompt, categories, set_of_values, additions=[], primary_model=None, secondary_model=None):
+def user_call_ai(prompt, categories, set_of_values, additions=[], primary_model=None, secondary_model=None, iteration=0):
     """
     Calls the AI model to map raw answers to categories.
     The answer is run through various checks to ensure it is valid JSON and contains all the raw answers. 
@@ -110,7 +110,7 @@ def user_call_ai(prompt, categories, set_of_values, additions=[], primary_model=
     json_response = {k: v for k, v in json_response.items() if k in set_of_values and v in categories}
 
     # check if the response contains all the raw answers, if not, ask the AI to return all the raw answers
-    if json_response.keys() != set_of_values:
+    if json_response.keys() != set_of_values and iteration < 5:
         print("The AI response does not contain all the raw answers. Adding the missing raw answers")
         print(f"Difference between keys: {set_of_values - json_response.keys()}, {json_response.keys() - set_of_values}")
         difference = set_of_values - json_response.keys()
@@ -121,8 +121,15 @@ def user_call_ai(prompt, categories, set_of_values, additions=[], primary_model=
             additions,
             primary_model=primary_model,
             secondary_model=secondary_model,
+            iteration=iteration + 1,
         )
         json_response.update(user_call_result)
+    elif iteration >= 5:
+        print("Maximum iterations reached. Some raw answers may be missing from the mapping.")
+        #include raw answers with a mapping to nothing
+        for missing_key in set_of_values - json_response.keys():
+            json_response[missing_key] = None
+        return json_response
 
     # pass the response to a secondary AI to double check the mapping and ensure it is correct, if not, ask the AI to return a corrected mapping
 

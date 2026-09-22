@@ -130,6 +130,23 @@ class MappingReviewDialog(QDialog):
         message.setWordWrap(True)
         layout.addWidget(message)
 
+        invalid_mappings = {
+            raw_value: mapped_category
+            for raw_value, mapped_category in values.items()
+            if mapped_category not in categories
+        }
+        if invalid_mappings:
+            invalid_mapping_text = '\n'.join(
+                f'{raw_value}: {mapped_category!r}'
+                for raw_value, mapped_category in sorted(invalid_mappings.items(), key=lambda item: item[0].casefold())
+            )
+            QMessageBox.warning(
+                self,
+                'Invalid mappings found',
+                'The following mappings are not in the allowed categories. Please select a valid category before saving:\n\n'
+                f'{invalid_mapping_text}',
+            )
+
         self.table = QTableWidget(len(values), 2)
         self.table.setHorizontalHeaderLabels(['Raw value', 'Category'])
         self.table.verticalHeader().setVisible(False)
