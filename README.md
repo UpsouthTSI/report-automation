@@ -61,4 +61,11 @@ This will probably never need to be done as postcodes don't change that much.
 2) Put the data in the data folder
 3) Delete the postcode_coordinates.json file in memory
 4) Run the program
+
 The table will now be updated.
+
+## Config file
+The config file contains three things, a list of the AI models (See AI requirements for more) and a list of categories for ethnicities and genders.
+Edit this to change the categories.
+Note that you will need to remove the gender mappings and ethnicities to ensure that updates historical data.
+
