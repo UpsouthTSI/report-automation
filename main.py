@@ -8,7 +8,6 @@ from sub_processes.process_submission_data import submissions_data
 from sub_processes.process_user_data import user_data
 from sub_processes.process_challenge_data import challenge_data
 from sub_processes.postcode_geometry import postcode_coordinates
-from sub_processes.figure_verification import users_figs
 
 
 def run_processing(
@@ -83,9 +82,6 @@ def run_processing(
                 finances_data['ytd_expenses'],
                 finances_data['ytd_income'],
             ])
-
-    users_figs(processed_users, processed_submissions)
-
 
 def get_finances_data():
     """Prompt the user on the command line for the current financial information."""
