@@ -3,6 +3,7 @@ import os
 import re
 import pandas as pd
 from sub_processes.ai_call import user_call_ai
+from sub_processes.process_date import process_date
 
 def user_data(data, memory_dir=None, mapping_reviewer=None, primary_ai_model=None, secondary_ai_model=None):
     #set the UserPostcode column to int type and handling Nans
@@ -12,6 +13,8 @@ def user_data(data, memory_dir=None, mapping_reviewer=None, primary_ai_model=Non
         raise ValueError("Data validation failed. Please check the data for issues.")
     # Remove identifiable information from the data
     data = remove_identifiable_info(data)
+    # Process date columns
+    data = process_date(data) 
     # Process the 'DOB' column in the data
     data = process_DOB(data)
     # Process the 'Ethnicity' column in the data

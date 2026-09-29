@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+from sub_processes.process_date import process_date
 
 def challenge_data(data):
     """
@@ -13,6 +14,7 @@ def challenge_data(data):
     """
     # Example processing: extract reward descriptions into a separate table
     reward_table = process_reward_description(data)
+    data = process_date(data)
     return data, reward_table
 
 def process_reward_description(data):

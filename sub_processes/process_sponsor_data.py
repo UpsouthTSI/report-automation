@@ -1,4 +1,5 @@
-
+import pandas as pd
+from sub_processes.process_date import process_date
 
 def sponsor_data(data):
     """
@@ -12,6 +13,7 @@ def sponsor_data(data):
     # Example processing: extract sponsor details into a separate table
     
     data = anonymize(data)
+    data = process_date(data)
 
     return data
 

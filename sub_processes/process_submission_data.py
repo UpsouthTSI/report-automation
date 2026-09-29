@@ -1,16 +1,11 @@
 import pandas as pd
-
+from sub_processes.process_date import process_date
 
 def submissions_data(data, users):
-
-    # Remove identifiable data
     data = remove_identifiable_info(data)
-
-    # Check data connected to users
     data = check_data_connected_to_users(data, users)
-
-    # Remove non monetary reward data
     data = remove_non_monetary_reward_data(data)
+    data = process_date(data)
 
     return data
 
