@@ -1,6 +1,5 @@
 import json
-import json
-with open('config.json', 'r') as f:
+with open('config.json', 'r', encoding='utf-8') as f:
     config = json.load(f)
 import os
 import re
@@ -80,7 +79,7 @@ def get_ethnicity(data, memory_dir=None, mapping_reviewer=None, primary_ai_model
 
     # Get old mappings
     if memory_dir and 'ethnicity_mapping.json' in os.listdir(memory_dir):
-        with open(os.path.join(memory_dir, 'ethnicity_mapping.json'), 'r') as f:
+        with open(os.path.join(memory_dir, 'ethnicity_mapping.json'), 'r', encoding='utf-8') as f:
             old_mappings = json.load(f)
 
     #select the values that need to be mapped
@@ -120,7 +119,7 @@ def get_ethnicity(data, memory_dir=None, mapping_reviewer=None, primary_ai_model
 
     # Save updated mappings
         if memory_dir:
-            with open(os.path.join(memory_dir, 'ethnicity_mapping.json'), 'w') as f:
+            with open(os.path.join(memory_dir, 'ethnicity_mapping.json'), 'w', encoding='utf-8') as f:
                 json.dump(old_mappings, f, indent=4)
 
 
@@ -206,7 +205,7 @@ def process_gender(data, memory_dir=None, mapping_reviewer=None, primary_ai_mode
 
     # Get old mappings
     if memory_dir and 'gender_mapping.json' in os.listdir(memory_dir):
-        with open(os.path.join(memory_dir, 'gender_mapping.json'), 'r') as f:
+        with open(os.path.join(memory_dir, 'gender_mapping.json'), 'r', encoding='utf-8') as f:
             old_mappings = json.load(f)
 
     #select the values that need to be mapped
@@ -246,7 +245,7 @@ def process_gender(data, memory_dir=None, mapping_reviewer=None, primary_ai_mode
 
     # Save updated mappings
         if memory_dir:
-            with open(os.path.join(memory_dir, 'gender_mapping.json'), 'w') as f:
+            with open(os.path.join(memory_dir, 'gender_mapping.json'), 'w', encoding='utf-8') as f:
                 json.dump(old_mappings, f, indent=4)
 
     # Map the 'Gender' column using the updated mappings and fill NaN values with 'Unknown'

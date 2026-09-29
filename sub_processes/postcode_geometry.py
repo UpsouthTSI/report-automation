@@ -23,7 +23,7 @@ def postcode_coordinates(geodata_file, memory_dir=None, regional_geodata_file=No
     if memory_dir:
         memory_file = os.path.join(memory_dir, 'postcode_coordinates.json')
         if os.path.exists(memory_file):
-            with open(memory_file, 'r') as f:
+            with open(memory_file, 'r', encoding='utf-8') as f:
                 postcode_memory = json.load(f)
             for postcode, values in postcode_memory.items():
                 df_postcode.loc[len(df_postcode)] = [postcode, values[0], values[1], values[2], None]
@@ -44,7 +44,7 @@ def postcode_coordinates(geodata_file, memory_dir=None, regional_geodata_file=No
     if regional_geodata_file:
         postcode_region(postcode_memory, regional_geodata_file)
     if memory_dir:
-        with open(memory_file, 'w') as f:
+        with open(memory_file, 'w', encoding='utf-8') as f:
             json.dump(postcode_memory, f, indent=4)
     df_postcode = pd.DataFrame(
         [(k, v[0], v[1], v[2] if len(v) > 2 else None, v[3] if len(v) > 3 else None) for k, v in postcode_memory.items()],
