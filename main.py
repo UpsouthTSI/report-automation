@@ -62,7 +62,7 @@ def run_processing(
         model=primary_ai_model,
     ))"""
     # Save the processed data to CSV files
-    ethnicity_table.to_csv(os.path.join(output_directory, 'ethnicity_table.csv'), index=True)
+    ethnicity_table.to_csv(os.path.join(output_directory, 'ethnicity_table.csv'), index=False)
     ethnicity_join_table.to_csv(os.path.join(output_directory, 'ethnicity_join_table.csv'), index=False)
     #submissions_join_table.to_csv(os.path.join(output_directory, 'submissions_join_table.csv'), index=False)
     processed_submissions.to_csv(os.path.join(output_directory, 'submissions_join_table.csv'), index=False)

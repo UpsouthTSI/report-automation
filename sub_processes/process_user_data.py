@@ -1,4 +1,7 @@
 import json
+import json
+with open('config.json', 'r') as f:
+    config = json.load(f)
 import os
 import re
 import pandas as pd
@@ -71,7 +74,7 @@ def get_ethnicity(data, memory_dir=None, mapping_reviewer=None, primary_ai_model
         specific_ethnicities = process_specific_ethnicity(ethnicity)
         set_of_ethnicities.update(specific_ethnicities)
 
-    categories = ['New Zealand European', 'Māori', 'Pacifica', 'Asian', 'Middle Eastern', 'Latin American', 'African', 'Other', 'Unknown']
+    categories = config["ETHNICITY_CLASSIFICATIONS"] 
 
     old_mappings = {}
 
@@ -122,9 +125,13 @@ def get_ethnicity(data, memory_dir=None, mapping_reviewer=None, primary_ai_model
 
 
     ethnicity_table = pd.DataFrame(columns=['Category', 'Specific Ethnicity'])
+    ethnicity_table = pd.DataFrame({
+        'Specific Ethnicity': list(old_mappings.keys()),
+        'Category': list(old_mappings.values())
+    }).drop_duplicates().reset_index(drop=True)
+    ethnicity_table.insert(0, 'EthnicityID', ethnicity_table.index)
 
-    for key, value in old_mappings.items():
-        ethnicity_table = pd.concat([ethnicity_table, pd.DataFrame({'Category': [value], 'Specific Ethnicity': [key]})], ignore_index=True)
+    mapping = ethnicity_table.set_index('Specific Ethnicity')['EthnicityID'].to_dict()
 
     ethnicity_join_table = pd.DataFrame(columns=['UserID', 'EthnicityID'])
 
@@ -134,7 +141,7 @@ def get_ethnicity(data, memory_dir=None, mapping_reviewer=None, primary_ai_model
         specific_ethnicities = process_specific_ethnicity(ethnicity)
         for specific_ethnicity in specific_ethnicities:
             if specific_ethnicity in old_mappings:
-                index = ethnicity_table[ethnicity_table['Specific Ethnicity'] == old_mappings[specific_ethnicity]].index.start
+                index = mapping[specific_ethnicity]
                 ethnicity_join_table = pd.concat([ethnicity_join_table, pd.DataFrame({'UserID': [user_id], 'EthnicityID': [index]})], ignore_index=True)
 
     return ethnicity_table, ethnicity_join_table
@@ -192,7 +199,7 @@ def process_gender(data, memory_dir=None, mapping_reviewer=None, primary_ai_mode
     unique_genders = data['Gender'].unique()
 
     # Define the categorys
-    categories = ['Male', 'Female', 'Non-binary', 'Prefer not to say', 'Other', 'Unknown']
+    categories = config["GENDER_CLASSIFICATIONS"]
 
     # Initialize an empty dictionary to store old mappings
     old_mappings = {}
@@ -280,6 +287,7 @@ def process_submissions(data):
 
     submissions_join_table = pd.DataFrame(columns=['UserID', 'SubmissionID'])
 
+    rows = []
     for index, row in data.iterrows():
         user_id = row['UserID']
         submissions = row['SubmissionIds']
@@ -287,7 +295,8 @@ def process_submissions(data):
             continue
         submission_list = [s.strip() for s in submissions.split(',')]
         for submission in submission_list:
-            submissions_join_table = pd.concat([submissions_join_table, pd.DataFrame({'UserID': [user_id], 'SubmissionID': [submission]})], ignore_index=True)
+            rows.append({'UserID': user_id, 'SubmissionID': submission})
+    submissions_join_table = pd.DataFrame(rows)
 
     return submissions_join_table
 

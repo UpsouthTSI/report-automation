@@ -1,3 +1,5 @@
 {
-    "AI_MODEL_SUPPORT": ["gemini:gemini-3.5-flash-lite", "gemini:gemini-3.7-flash", "ollama:llama3.1:8b", "ollama:deepseek-r1:7b"]
+    "AI_MODEL_SUPPORT": ["gemini:gemini-3.5-flash-lite", "gemini:gemini-3.7-flash", "ollama:llama3.1:8b", "ollama:deepseek-r1:7b"],
+    "GENDER_CLASSIFICATIONS": ["Male", "Female", "Non-binary", "Prefer not to say", "Other", "Unknown"],
+    "ETHNICITY_CLASSIFICATIONS": ["New Zealand European", "Māori", "Pacifica", "Asian", "Middle Eastern", "Latin American", "African", "Other", "Unknown"]
 }
