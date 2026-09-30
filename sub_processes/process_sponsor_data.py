@@ -1,4 +1,3 @@
-import pandas as pd
 from sub_processes.process_date import process_date
 
 def sponsor_data(data):

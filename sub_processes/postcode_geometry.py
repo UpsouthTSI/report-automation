@@ -2,7 +2,6 @@ import json
 import os
 import pandas as pd
 import shapefile
-import numpy as np
 from scipy.spatial import KDTree
 from shapely.geometry import Point, Polygon
 from pyproj import CRS, Transformer

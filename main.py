@@ -1,7 +1,6 @@
 import csv
 import os
 
-from sub_processes.ai_call import brief_ai_summary
 from sub_processes.get_data import get_from_csv
 from sub_processes.process_sponsor_data import sponsor_data
 from sub_processes.process_submission_data import submissions_data

@@ -1,6 +1,5 @@
 import json
 import pandas as pd
-import os
 
 DEFAULT_PRIMARY_MODEL = 'ollama:llama3.1:8b'
 DEFAULT_SECONDARY_MODEL = 'ollama:deepseek-r1:7b'
