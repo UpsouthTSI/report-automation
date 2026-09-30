@@ -1,6 +1,7 @@
 import sys
 import traceback
 import os
+import json
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -178,6 +179,10 @@ class BuzzlyWindow(QMainWindow):
         super().__init__()
         self.worker = None
         self.settings = QSettings('Buzzly', 'Data Processor')
+        with open('config.json', 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        self.geospatial_ui_enabled = config.get('ENABLE_GEOSPATIAL_UI', False)
+        self.individual_challenge_ui_enabled = config.get('ENABLE_INDIVIDUAL_CHALLENGE_UI', True)
         try:
             stored_gemini_api_key = get_stored_gemini_api_key()
         except Exception:
@@ -218,14 +223,15 @@ class BuzzlyWindow(QMainWindow):
         required_form.addRow('submissions.csv', self.submissions)
         controls_layout.addWidget(required_section)
 
-        optional_section = self.create_section('Optional geospatial data')
-        optional_form = QFormLayout(optional_section)
-        optional_form.setSpacing(12)
-        self.postcodes = PathSelector('Postcode boundaries', required=False)
-        self.regions = PathSelector('Regional councils', required=False)
-        optional_form.addRow('postcode_boundaries.zip', self.postcodes)
-        optional_form.addRow('regional_councils.zip', self.regions)
-        controls_layout.addWidget(optional_section)
+        if self.geospatial_ui_enabled:
+            optional_section = self.create_section('Optional geospatial data')
+            optional_form = QFormLayout(optional_section)
+            optional_form.setSpacing(12)
+            self.postcodes = PathSelector('Postcode boundaries', required=False)
+            self.regions = PathSelector('Regional councils', required=False)
+            optional_form.addRow('postcode_boundaries.zip', self.postcodes)
+            optional_form.addRow('regional_councils.zip', self.regions)
+            controls_layout.addWidget(optional_section)
 
         output_section = self.create_section('Output')
         output_form = QFormLayout(output_section)
@@ -247,10 +253,6 @@ class BuzzlyWindow(QMainWindow):
 
         ai_section = self.create_section('AI settings')
         ai_form = QFormLayout(ai_section)
-        # import AI model options from config.json
-        import json
-        with open('config.json', 'r', encoding='utf-8') as f:
-            config = json.load(f)
         self.ai_options = config.get('AI_MODEL_SUPPORT', [])
         self.primary_ai_model = QComboBox()
         self.primary_ai_model.setEditable(True)
@@ -285,7 +287,8 @@ class BuzzlyWindow(QMainWindow):
 
         tabs = QTabWidget()
         tabs.addTab(processing_widget, 'Process all data')
-        tabs.addTab(self.create_individual_challenge_tab(), 'Process individual challenge')
+        if self.individual_challenge_ui_enabled:
+            tabs.addTab(self.create_individual_challenge_tab(), 'Process individual challenge')
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
@@ -371,15 +374,19 @@ class BuzzlyWindow(QMainWindow):
         self.secondary_ai_model.currentTextChanged.connect(self.save_preferences)
 
     def preference_path_selectors(self):
-        return {
+        selectors = {
             'challenges_file': self.challenges,
             'sponsors_file': self.sponsors,
             'users_file': self.users,
             'submissions_file': self.submissions,
-            'postcode_file': self.postcodes,
-            'regions_file': self.regions,
             'output_directory': self.output,
         }
+        if self.geospatial_ui_enabled:
+            selectors.update({
+                'postcode_file': self.postcodes,
+                'regions_file': self.regions,
+            })
+        return selectors
 
     def save_preferences(self):
         for setting_name, selector in self.preference_path_selectors().items():
@@ -394,8 +401,9 @@ class BuzzlyWindow(QMainWindow):
             return
 
         invalid_paths = [path for path in required_paths[:4] if not Path(path).is_file()]
-        optional_paths = [path for path in [self.postcodes.value(), self.regions.value()] if path]
-        invalid_paths.extend(path for path in optional_paths if not Path(path).is_file())
+        if self.geospatial_ui_enabled:
+            optional_paths = [path for path in [self.postcodes.value(), self.regions.value()] if path]
+            invalid_paths.extend(path for path in optional_paths if not Path(path).is_file())
         if invalid_paths:
             QMessageBox.warning(self, 'Invalid path', f'These selected files do not exist:\n' + '\n'.join(invalid_paths))
             return
@@ -449,18 +457,20 @@ class BuzzlyWindow(QMainWindow):
         self.process_button.setEnabled(False)
         self.status.setText('Processing data. This may take a few minutes while mappings are generated.')
         self.progress_log.clear()
-        self.worker = ProcessingWorker(run_processing, {
+        processing_paths = {
             'challenges_file': self.challenges.value(),
             'sponsors_file': self.sponsors.value(),
             'users_file': self.users.value(),
             'submissions_file': self.submissions.value(),
             'output_directory': self.output.value(),
-            'geodata_file': self.postcodes.value() or None,
-            'regional_geodata_file': self.regions.value() or None,
             'primary_ai_model': self.primary_ai_model.currentText().strip(),
             'secondary_ai_model': self.secondary_ai_model.currentText().strip(),
             'finances_data': finances_fields,
-        })
+        }
+        if self.geospatial_ui_enabled:
+            processing_paths['geodata_file'] = self.postcodes.value() or None
+            processing_paths['regional_geodata_file'] = self.regions.value() or None
+        self.worker = ProcessingWorker(run_processing, processing_paths)
         self.worker.completed.connect(self.processing_completed)
         self.worker.failed.connect(self.processing_failed)
         self.worker.mapping_review_requested.connect(self.review_mappings)
